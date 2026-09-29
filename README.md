@@ -39,18 +39,6 @@ Illegal jumps (e.g. placed -> delivered) are rejected by `Order.TRANSITIONS`.
 
 Send the token as `Authorization: Bearer <access_token>`.
 
-## Design notes (know these for your interview)
-- **Stateless JWT (SimpleJWT):** no server-side sessions; any server instance can verify a token.
-  Access token = 30 min, refresh = 7 days.
-- **Inventory consistency:** checkout runs in `transaction.atomic()` and locks product rows with
-  `select_for_update()` (ordered by id to avoid deadlocks). Two buyers of the last unit are
-  serialized, so overselling is impossible. See `orders/services.py`.
-- **Price snapshot:** `OrderItem.unit_price` stores the price at purchase time, so later price
-  changes don't rewrite history.
-- **Modular apps:** `users`, `catalog`, `cart`, `orders`, each with its own models/serializers/views/urls.
-  This is a modular monolith. It is separable into services later, but it is not deployed as microservices.
-- **Object-level security:** carts and orders are always filtered by `request.user`, so users get 404 for other people's data.
-
 ## Production-style features
 - **Order lifecycle + shipping address** copied onto each order at checkout (an address change later doesn't rewrite old orders).
 - **Swagger docs** (drf-spectacular) at `/api/docs/`.
@@ -61,9 +49,4 @@ Send the token as `Authorization: Bearer <access_token>`.
 - **CI:** GitHub Actions runs the tests on every push (`.github/workflows/ci.yml`).
 - **Health endpoint** for deployment checks.
 
-## Deploying (AWS EC2)
-Launch an Ubuntu EC2 instance, install Docker, clone the repo, set real values for `SECRET_KEY`, `ALLOWED_HOSTS`
-and the DB password in `docker-compose.yml`, then run `docker compose up -d --build`. Open port 8000 (or put Nginx in front).
 
-## Not built yet (be honest about this in interviews)
-Real payment gateway (e.g. Razorpay), product images, email notifications, refunds, reviews, and a caching layer.
