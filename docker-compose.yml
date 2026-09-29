@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: ecommerce
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    environment:
+      DEBUG: "0"
+      SECRET_KEY: change-me-in-real-deployments
+      ALLOWED_HOSTS: "localhost,127.0.0.1,web"
+      DB_ENGINE: mysql
+      DB_NAME: ecommerce
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_HOST: db
+      DB_PORT: "3306"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://web:8000/api
+    depends_on:
+      - web
+
+volumes:
+  dbdata:
